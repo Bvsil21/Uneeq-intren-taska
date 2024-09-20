@@ -1,0 +1,38 @@
+
+import time
+from collections import defaultdict
+from scapy.all import sniff, IP
+
+packet_count = defaultdict(int)
+
+TIME_WINDOW = 10
+DOS_THRESHOLD = 100
+
+def monitor_traffic(packet):
+    if packet.haslayer(IP):
+        src_ip = packet[IP].src
+        packet_count[src_ip] += 1
+
+        if packet_count[src_ip] > DOS_THRESHOLD:
+            print(f"[!] Potential DOS attack detected from IP: {src_ip}")
+            print(f"Number of packets: {packet_count[src_ip]}")
+            
+def reset_packet_count():
+    while True:
+        time.sleep(TIME_WINDOW)
+        print(f"[*] Resetting packet count after {TIME_WINDOW} seconds...")
+        packet_count.clear()
+
+def start_dos_detection(interface="eth0"):
+    print(f"[*] Starting DOS detection on {interface}...")
+    import threading
+    reset_thread = threading.Thread(target=reset_packet_count)
+    reset_thread.daemon = True
+    reset_thread.start()
+
+    sniff(iface=interface, prn=monitor_traffic)
+
+if __name__ == "__main__":
+    # Set your network interface (e.g., eth0, wlan0)
+    network_interface = "eth0"
+    start_dos_detection(interface=network_interface)
